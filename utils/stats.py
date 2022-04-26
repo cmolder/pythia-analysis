@@ -9,25 +9,19 @@ def get_longest_simpoints(weights):
     traces = weights[idx].trace
     return traces
 
-def _process_prefetcher(stats, df, weights, tr, l1d_pref, l2c_pref, llc_pref, pyt_level_th):
+def _process_prefetcher(stats, df, weights, tr, pf, plt):
     wt = weights[weights.trace == tr][['simpoint', 'weight']]
-    data = df[(df.trace == tr) & (df.l1d_pref == l1d_pref) & (df.l2c_pref == l2c_pref) & (df.llc_pref == llc_pref)].copy()
-    data.pythia_level_threshold.fillna(float('-inf'), inplace=True)
-    if pd.isna(pyt_level_th):
-        pyt_level_th = float('-inf')
-    data = data[(data.pythia_level_threshold == pyt_level_th)]
+    data = df[(df.trace == tr) & (df.all_pref == pf) & (df.pythia_level_threshold == plt)]
     data = data.merge(wt, on='simpoint')
     weights = data['weight'] / sum(data['weight'])
 
     stats['trace'] = np.append(stats['trace'], tr)
-    stats['l1d_pref'] = np.append(stats['l1d_pref'], l1d_pref)
-    stats['l2c_pref'] = np.append(stats['l2c_pref'], l2c_pref)
-    stats['llc_pref'] = np.append(stats['llc_pref'], llc_pref)
-    stats['pythia_level_threshold'] = np.append(stats['pythia_level_threshold'], pyt_level_th)
+    stats['all_pref'].append(pf)
     stats['simpoint'] = np.append(stats['simpoint'], 'weighted')
-
+    stats['pythia_level_threshold'] = np.append(stats['pythia_level_threshold'], plt)
+    
     if len(data) == 0:
-        #print(f'[DEBUG] {pf} {tr} not found')
+        print(f'[DEBUG] {pf} {tr} {plt} not found')
         for metric in utils.metrics:
             stats[f'{metric}'] = np.append(stats[f'{metric}'], np.nan)
         return
@@ -35,26 +29,32 @@ def _process_prefetcher(stats, df, weights, tr, l1d_pref, l2c_pref, llc_pref, py
     for metric in utils.metrics:
         target = data[metric].item() if len(data) <= 1 else utils.mean(data[metric], metric, weights=weights)
         stats[f'{metric}'] = np.append(stats[f'{metric}'], target)
+        #print('[DEBUG]', pf, metric, data[metric].to_list(), weights.to_list(), stats[f'{metric}'][-1])
 
     
 def get_weighted_statistics(df, weights):
     stats = {
         'trace': np.array([]),
-        'l1d_pref': np.array([]),
-        'l2c_pref': np.array([]),
-        'llc_pref': np.array([]),
+        'all_pref': [],
         'pythia_level_threshold': np.array([]),
         'simpoint': np.array([]),
-        'accuracy': np.array([]),
-        'coverage': np.array([]),
+        'L2C_accuracy': np.array([]),
+        'L2C_coverage': np.array([]),
+        'LLC_accuracy': np.array([]),
+        'LLC_coverage': np.array([]),
         'ipc_improvement': np.array([]),
-        'mpki_reduction': np.array([]),
+        'L2C_mpki_reduction': np.array([]),
+        'LLC_mpki_reduction': np.array([]),
         'dram_bw_reduction': np.array([])
     }
     
+    df.pythia_level_threshold = df.pythia_level_threshold.fillna('None')
 
     for tr in df.trace.unique():
-        for l1p, l2p, llp, plt in product(df.l1d_pref.unique(), df.l2c_pref.unique(), df.llc_pref.unique(), df.pythia_level_threshold.unique()):
-            _process_prefetcher(stats, df, weights, tr, l1p, l2p, llp, plt)
-               
-    return pd.DataFrame(stats)
+        for pf, plt in product(df.all_pref.unique(), df.pythia_level_threshold.unique()):
+            _process_prefetcher(stats, df, weights, tr, pf, plt)
+           
+    stats = pd.DataFrame(stats)
+    stats.pythia_level_threshold.replace('None', float('-inf'), inplace=True)
+    stats.pythia_level_threshold = stats.pythia_level_threshold.astype(float)
+    return stats

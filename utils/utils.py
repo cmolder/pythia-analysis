@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 
-metrics = ['accuracy', 'coverage', 'ipc_improvement', 'mpki_reduction', 'dram_bw_reduction']
-amean_metrics = ['accuracy', 'coverage', 'dram_bw_reduction']
+metrics = ['L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'ipc_improvement', 'L2C_mpki_reduction', 'LLC_mpki_reduction', 'dram_bw_reduction']
+amean_metrics = ['L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'dram_bw_reduction']
 
 gap = [
     'cc', 'pr', 'sssp', 'bfs', 'tc'
@@ -59,16 +59,20 @@ def read_degree_sweep_file(path):
 def read_data_file(path):
     df = pd.read_csv(path)
     df.simpoint = df.simpoint.fillna('default')
-    for col in ['l1d_pref', 'l2c_pref', 'llc_pref']:
+    
+    for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
+    
         df[col] = df[col].replace({
             'scooby': 'pythia',
             'spp_dev2': 'spp',
             'bop': 'bo'
         }, regex=True)
-    
+
         # Fix prefetcher ordering
         df[col] = df[col].apply(lambda c : '_'.join(sorted(c.split('_'))))
     
+    
+    df['all_pref'] = list(zip(df.L1D_pref, df.L2C_pref, df.LLC_pref))
     return df
 
 def mean(values, metric, weights=None):
@@ -77,21 +81,24 @@ def mean(values, metric, weights=None):
     if metric in amean_metrics:
         return np.average(values, weights=weights)
     else:
-        if metric == 'ipc_improvement':
+        if 'ipc_improvement' in metric:
             # Add 100 to prevent negative values (so that 100 = no prefetcher baseline)
             return stats.gmean(values + 100, weights=weights) - 100 
-        if metric == 'mpki_reduction':
+        if 'mpki_reduction' in metric:
             # Take gmean of relative misses instead of MPKI reduction to prevent negative values
             return 100 - stats.gmean(100 - values, weights=weights) 
+        print(f'Unknown metric {metric}')
         
 def rank_prefetchers(df, metric, count=None):
     """Return the <count> best prefetchers, in order of maximum <metric>.
     """
     pf_avgs = []
     # Filter out opportunity prefetchers from the ranking.
-    df = df[~df.prefetcher.str.startswith('pc_combined') & ~df.prefetcher.str.contains('phase_combined')]
     
-    for i, (pf, df_pf) in enumerate(df.groupby('prefetcher')):
+    for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
+        df = df[~df[col].str.startswith('pc_comb') & ~df[col].str.contains('phase_comb')]
+    
+    for i, (pf, df_pf) in enumerate(df.groupby(['L1D_pref', 'L2C_pref', 'LLC_pref'])):
         avg = mean(df_pf[metric], metric)
         pf_avgs.append((avg, pf))
         
