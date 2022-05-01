@@ -52,6 +52,10 @@ def get_weighted_statistics(df, weights):
 
     for tr in df.trace.unique():
         for pf, plt in product(df.all_pref.unique(), df.pythia_level_threshold.unique()):
+            #print(plt)
+            if 'double_pythia' in pf and plt != 'None':
+                continue
+            
             _process_prefetcher(stats, df, weights, tr, pf, plt)
            
     stats = pd.DataFrame(stats)

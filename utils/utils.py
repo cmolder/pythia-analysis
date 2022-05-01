@@ -50,6 +50,7 @@ def read_weights_file(path):
 
 def read_degree_sweep_file(path):
     df = pd.read_csv(path)
+    df.columns = df.columns.str.replace('scooby_double', 'pythia_double')
     df.columns = df.columns.str.replace('scooby', 'pythia')
     df.columns = df.columns.str.replace('spp_dev2', 'spp')
     df.columns = df.columns.str.replace('bop', 'bo')
@@ -63,6 +64,7 @@ def read_data_file(path):
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
     
         df[col] = df[col].replace({
+            'scooby_double': 'pythia_double',
             'scooby': 'pythia',
             'spp_dev2': 'spp',
             'bop': 'bo'
