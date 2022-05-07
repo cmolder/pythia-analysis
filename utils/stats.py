@@ -30,6 +30,22 @@ def _process_prefetcher(stats, df, weights, tr, pf, plt):
         target = data[metric].item() if len(data) <= 1 else utils.mean(data[metric], metric, weights=weights)
         stats[f'{metric}'] = np.append(stats[f'{metric}'], target)
         #print('[DEBUG]', pf, metric, data[metric].to_list(), weights.to_list(), stats[f'{metric}'][-1])
+        
+def add_means(df):
+    df = df.copy()
+    for pf, plt, seed in product(df.all_pref.unique(), df.pythia_level_threshold.unique(), df.seed.unique()):
+        df_ = df[(df.all_pref == pf) & (df.pythia_level_threshold == plt) & (df.seed == seed)]
+        row = df_.iloc[-1].copy()
+        row.full_trace = 'mean'
+        row.trace = 'mean'
+        row.simpoint = 'default'
+        for metric in utils.metrics:
+            row[metric] = utils.mean(df_[metric], metric)
+        
+        #print(pf, plt, seed, row)
+        df.loc[len(df.index)] = row
+        
+    return df
 
     
 def get_weighted_statistics(df, weights):
@@ -45,7 +61,9 @@ def get_weighted_statistics(df, weights):
         'ipc_improvement': np.array([]),
         'L2C_mpki_reduction': np.array([]),
         'LLC_mpki_reduction': np.array([]),
-        'dram_bw_reduction': np.array([])
+        'dram_bw_reduction': np.array([]),
+        'pythia_high_conf_prefetches': np.array([]),
+        'pythia_low_conf_prefetches': np.array([]),
     }
     
     df.pythia_level_threshold = df.pythia_level_threshold.fillna('None')

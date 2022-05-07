@@ -2,24 +2,27 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 
-metrics = ['L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'ipc_improvement', 'L2C_mpki_reduction', 'LLC_mpki_reduction', 'dram_bw_reduction']
-amean_metrics = ['L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'dram_bw_reduction']
+metrics = [
+    'L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'ipc_improvement', 'L2C_mpki_reduction', 'LLC_mpki_reduction', 'dram_bw_reduction',
+    'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
+]
+amean_metrics = [
+    'L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'dram_bw_reduction',
+    'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
+]
 
 gap = [
-    'cc', 'pr', 'sssp', 'bfs', 'tc'
+    'bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'
 ]
-spec = [
+spec06 = [
     'astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix',
-    'gcc', 'GemsFDTD', 'hmmer', 'lbm', 'leslie3d',
+    'gcc', 'GemsFDTD', 'lbm', 'leslie3d',
     'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex',
-    'sphinx3', 'tonto', 'wrf', 'xalancbmk'
+    'sphinx3', 'tonto', 'wrf', 'xalancbmk', 'zeusmp'
 ]
-cloudsuite = [
-    'cassandra_core0', 'cassandra_core1', 'cassandra_core2', 'cassandra_core3',
-    'classification_core0', 'classification_core1', 'classification_core2', 'classification_core3',
-    'cloud9_core0', 'cloud9_core1', 'cloud9_core2', 'cloud9_core3',
-    'nutch_core0', 'nutch_core1', 'nutch_core2', 'nutch_core3',
-    'streaming_core0', 'streaming_core1', 'streaming_core2', 'streaming_core3'
+spec17 = [
+    '603.bwaves', '605.mcf', '619.lbm', '620.omnetpp',
+    '621.wrf', '627.cam4', '649.fotonik3d', '654.roms'
 ]
 
 def read_weights_file(path):
@@ -59,7 +62,8 @@ def read_degree_sweep_file(path):
 
 def read_data_file(path):
     df = pd.read_csv(path)
-    df.simpoint = df.simpoint.fillna('default')
+    df.simpoint.fillna('default', inplace=True)
+    df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
     
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
     
