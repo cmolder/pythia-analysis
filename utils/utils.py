@@ -42,7 +42,7 @@ def read_weights_file(path):
             trace.append(tokens[0])
             simpoint.append(tokens[1])
         if len(tokens) == 1: # Gap
-            trace.append(tokens[0])
+            trace.append(tokens[0].replace('.trace', ''))
             simpoint.append('default')
     
     weights['trace'] = trace
@@ -64,6 +64,8 @@ def read_data_file(path):
     df = pd.read_csv(path)
     df.simpoint.fillna('default', inplace=True)
     df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
+    df.trace = df.trace.str.replace('.trace', '')
+    df.full_trace = df.full_trace.str.replace('.trace', '')
     
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
     
