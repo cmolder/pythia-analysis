@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -26,6 +28,8 @@ spec17 = [
 ]
 
 def read_weights_file(path):
+    """DEPRECATED"""
+    warnings.warn('read_weights_file is deprecated, use -w in eval script instead.')
     weights = pd.read_csv(path, sep=' ', header=None)
     weights.columns = ['full_trace', 'weight']
     
@@ -64,9 +68,8 @@ def read_data_file(path):
     df = pd.read_csv(path)
     df.simpoint.fillna('default', inplace=True)
     df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
-    df.trace = df.trace.str.replace('.trace', '')
-    df.full_trace = df.full_trace.str.replace('.trace', '')
     
+    # Clean prefetcher names
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
     
         df[col] = df[col].replace({
@@ -79,7 +82,7 @@ def read_data_file(path):
         # Fix prefetcher ordering
         df[col] = df[col].apply(lambda c : '_'.join(sorted(c.split('_'))))
     
-    
+    # Make all_pref follow cleaned prefetcher names
     df['all_pref'] = list(zip(df.L1D_pref, df.L2C_pref, df.LLC_pref))
     return df
 
