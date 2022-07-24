@@ -5,11 +5,15 @@ import numpy as np
 from scipy import stats
 
 metrics = [
-    'L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'ipc_improvement', 'L2C_mpki_reduction', 'LLC_mpki_reduction', 'dram_bw_reduction',
+    'L2C_issued_prefetches', 'L2C_accuracy', 'L2C_coverage', 'L2C_mpki_reduction',
+    'LLC_issued_prefetches', 'LLC_accuracy', 'LLC_coverage', 'LLC_mpki_reduction',
+    'dram_bw_reduction', 'ipc_improvement', 
     'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
 ]
 amean_metrics = [
-    'L2C_accuracy', 'L2C_coverage', 'LLC_accuracy', 'LLC_coverage', 'dram_bw_reduction',
+    'L2C_issued_prefetches', 'L2C_accuracy', 'L2C_coverage', 
+    'LLC_issued_prefetches', 'LLC_accuracy', 'LLC_coverage', 
+    'dram_bw_reduction', 
     'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
 ]
 
