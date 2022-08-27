@@ -8,7 +8,8 @@ from IPython.display import display # DEBUG
 from utils import utils
 
 def get_longest_simpoints(weights):
-    """TODO: Replace inside eval scripts."""
+    """DEPRECATED"""
+    warnings.warn('get_longest_simpoints is deprecated, use -w in eval script instead.')
     idx = (weights.groupby('trace')['weight'].transform(max) == weights['weight'])
     traces = weights[idx].trace
     return traces
