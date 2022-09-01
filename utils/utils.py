@@ -71,6 +71,7 @@ def read_degree_sweep_file(path):
     df.columns = df.columns.str.replace('scooby', 'pythia')
     df.columns = df.columns.str.replace('spp_dev2', 'spp')
     df.columns = df.columns.str.replace('bop', 'bo')
+    df.columns = df.columns.str.replace('bop_orig', 'bo_orig')
     return df
 
 
@@ -96,7 +97,8 @@ def read_data_file(path: str):
             'scooby_double': 'pythia_double',
             'scooby': 'pythia',
             'spp_dev2': 'spp',
-            'bop': 'bo'
+            'bop': 'bo',
+            'bop_orig': 'bo_orig',
         }, regex=True)
 
         # Fix prefetcher ordering

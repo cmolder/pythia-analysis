@@ -87,18 +87,25 @@ def load_stats_csv_pythia(stats_csv: str,
     Returns:
         data_df: A dict of prefetchers and their statistics dataframes.
     """
-    def string_to_set(r): return set(
-        eval(r))  # Convert string/tuple to unordered set.
+    # Convert string/tuple/pd entry to unordered set.
+    def value_to_set(value):
+        if pd.notna(value):
+            return set(eval(value))
+        return set()
+
     # Convert set to string.
-    def set_to_string(s): return ', '.join(f for f in sorted(s))
+    def set_to_string(set):
+        return ', '.join(f for f in sorted(set))
+
+    
     data_df = {}
     df = utils.read_data_file(stats_csv)
     if seed is not None:
         df = df[df.seed == seed]
     if feature_sets == []:
         feature_sets = df.pythia_features.unique()
-        feature_sets = [string_to_set(s) for s in feature_sets]
+        feature_sets = [value_to_set(s) for s in feature_sets]
     for feat_set in feature_sets:
         data_df[set_to_string(feat_set)] = (
-            df[df.pythia_features.apply(string_to_set) == feat_set])
+            df[df.pythia_features.apply(value_to_set) == feat_set])
     return data_df
