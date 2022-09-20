@@ -34,7 +34,7 @@ def plot_metric(data_df: dict, metric: str,
         (['amean'] if metric in utils.amean_metrics else ['gmean'])
     traces = traces + ['mean']
 
-    largest_y = 0
+    min_y, max_y = 0, 0
     for i, (setup, df) in enumerate(data_df.items()):
         df = df[df.pythia_level_threshold == float('-inf')]
         df = stats.add_means(df)  # Add mean as an extra trace
@@ -43,10 +43,11 @@ def plot_metric(data_df: dict, metric: str,
             pos = (gap * j) + i
             #print(f'[DEBUG] i={i} j={j} setup={setup} tr={tr} pos={pos}, {pos+1}')
             p_samples = (rows[rows.all_pref.apply(match_prefetcher)][metric])
-            #p_min = p_samples.min()
+            p_min = p_samples.min()
             p_mean = p_samples.mean(),
             p_max = p_samples.max()
-            largest_y = max(largest_y, p_max)
+            max_y = max(max_y, p_max)
+            min_y = min(min_y, p_min)
 
             #print(f'[DEBUG] {tr} Regular {setup} {p_mean:.2f} {p_min:.2f} {p_max:.2f}')
             ax.bar(pos, p_mean,
@@ -61,11 +62,19 @@ def plot_metric(data_df: dict, metric: str,
     ax.set_xlabel('Trace')
 
     # Set ticks based on metric
-    TICK_METRICS = ['ipc_improvement',
-                    'accuracy', 'coverage', 'mpki_reduction']
-    if any(s in metric for s in TICK_METRICS):
-        #largest_y = 150
-        ax.set_yticks(np.arange(0, round(largest_y, -1) + 10, 10))
+    tick_gaps = {
+        'ipc_improvement': 10,
+        'accuracy': 10,
+        'coverage': 10,
+        'mpki_reduction': 10
+    }
+    round_to_multiple = lambda num, mul : mul * round(num / mul)
+    for metric_type, gap in tick_gaps.items():
+        if metric_type in metric:
+            ax.set_yticks(np.arange(
+                round_to_multiple(min_y, gap), 
+                round_to_multiple(max_y, gap) + gap, 
+                gap))
 
     ax.set_ylabel(metric.replace('_', ' '))
     ax.grid(axis='y', color='lightgray')
@@ -122,7 +131,7 @@ def plot_metric_benchmark(data_df: dict, benchmark: str, metric: str,
     num_samples = len(data_df.items())
     gap = num_samples + 1
 
-    largest_y = 0
+    max_y = 0
     for i, (setup, df) in enumerate(data_df.items()):
         df = df[df.pythia_level_threshold == float('-inf')]
         df = df[df.trace == benchmark]
@@ -131,14 +140,14 @@ def plot_metric_benchmark(data_df: dict, benchmark: str, metric: str,
         p_samples = (df[df.all_pref.apply(match_prefetcher)][metric])
         p_mean = p_samples.mean()
         p_max = p_samples.max()
-        largest_y = max(largest_y, p_max)
+        max_y = max(max_y, p_max)
         color = f'C{i}'
         ax.bar(pos, p_mean, label=f'{setup}', color=color)
 
     # Set ticks based on metric
     if any(s in metric for s in ['ipc_improvement', 'accuracy', 'coverage', 'mpki_reduction']):
-        #largest_y = 150
-        ax.set_yticks(np.arange(0, round(largest_y, -1) + 10, 10))
+        #max_y = 150
+        ax.set_yticks(np.arange(0, round(max_y, -1) + 10, 10))
 
     ax.set_xticks([])
     ax.set_xlabel('Prefetcher')

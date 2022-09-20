@@ -62,7 +62,7 @@ def get_weighted_statistics(df, weights):
         'ipc_improvement': np.array([]),
         'L2C_mpki_reduction': np.array([]),
         'LLC_mpki_reduction': np.array([]),
-        'dram_bw_reduction': np.array([]),
+        #'dram_bw_reduction': np.array([]),
         'pythia_high_conf_prefetches': np.array([]),
         'pythia_low_conf_prefetches': np.array([]),
     }
@@ -88,6 +88,9 @@ def add_means(df):
 
     For weighted SimPoints, see <script.py> eval -w in the Pythia
     repository."""
+    df = df.copy()
+    df.pythia_level_threshold.fillna(0, inplace=True)
+    df.seed.fillna(0, inplace=True)
     for pf, plt, seed in product(df.all_pref.unique(), df.pythia_level_threshold.unique(), df.seed.unique()):
         df_ = df[(df.all_pref == pf) & (
             df.pythia_level_threshold == plt) & (df.seed == seed)]

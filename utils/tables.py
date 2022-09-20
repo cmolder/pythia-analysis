@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Set, Tuple
 import pandas as pd
 from IPython.display import display
 
-from utils import utils
+from utils import stats, utils
 
 
 def table_suite(data_df: Dict[str, pd.DataFrame],
@@ -20,6 +20,7 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
     """
     data_df_ = {k: v[v.trace.isin(suite)] for k, v in data_df.items()}
     for k, v in data_df_.items():
+        v = stats.add_means(v)  # Add mean as an extra trace
         v = v.set_index('trace').round(2)
         print(k)
         display(v[metrics])
@@ -44,6 +45,7 @@ def table_everything(data_df: Dict[str, pd.DataFrame],
 
 def load_stats_csv(stats_csv: str,
                    prefetchers: List[str],
+                   prefetchers_level = 'l2',
                    seed: Optional[int] = None) -> Dict[Tuple[str, ...], pd.DataFrame]:
     """Load stats for arbitrary prefetchers.
 
@@ -66,8 +68,17 @@ def load_stats_csv(stats_csv: str,
     data_df = {}
     if prefetchers == []:
         prefetchers = df.L2C_pref.unique()
-    for pf in prefetchers:
-        data_df[pf] = df[df.all_pref == ('no', pf, 'no')]
+
+    if prefetchers_level == 'l1d':
+        for pf in prefetchers:
+            data_df[pf] = df[df.all_pref == (pf, 'no', 'no')]
+    elif prefetchers_level == 'l2':
+        for pf in prefetchers:
+            data_df[pf] = df[df.all_pref == ('no', pf, 'no')]
+    elif prefetchers_level == 'llc':
+        for pf in prefetchers:
+            data_df[pf] = df[df.all_pref == ('no', 'no', pf)]
+
     return data_df
 
 
