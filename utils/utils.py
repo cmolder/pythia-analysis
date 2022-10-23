@@ -100,10 +100,17 @@ def read_data_file(path: str):
             'spp_dev2': 'spp',
             'bop': 'bo',
             'bop_orig': 'bo_orig',
+            'from_file': 'fromfile',
         }, regex=True)
 
         # Fix prefetcher ordering
         df[col] = df[col].apply(lambda c: '_'.join(sorted(c.split('_'))))
+        
+        # Unfix some orderings
+        df[col] = df[col].replace({
+            'fromfile': 'from_file',
+            'ideal_isb': 'isb_ideal'
+        })
 
     # Make all_pref follow cleaned prefetcher names
     df['all_pref'] = list(zip(df.L1D_pref, df.L2C_pref, df.LLC_pref))
