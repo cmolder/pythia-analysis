@@ -7,7 +7,8 @@ from utils import stats, utils
 
 
 def table_suite(data_df: Dict[str, pd.DataFrame],
-                suite: List[str] = utils.spec06,
+                suite: str = 'spec06',
+                phase: str = 'one_phase',
                 metrics: List[str] = ['ipc_improvement']):
     """Summarize statsitics on a single suite.
 
@@ -17,17 +18,22 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
         metrics: A list of metrics to include.
 
     Returns: None
+
+    TODO: Handle multicore
     """
-    data_df_ = {k: v[v.trace.isin(suite)] for k, v in data_df.items()}
+    data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])] 
+                for k, v in data_df.items()}
+
     for k, v in data_df_.items():
+        v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
         v = stats.add_means(v)  # Add mean as an extra trace
-        v = v.set_index('trace').round(2)
+        v = v.set_index('run_name')
         print(k)
         display(v[metrics])
 
 
 def table_everything(data_df: Dict[str, pd.DataFrame],
-                     suites: Dict[str, List[str]] = {'SPEC 06': utils.spec06},
+                     suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
                      metrics: List[str] = ['ipc_improvement']):
     """Summarize statsitics on multiple suites.
 
@@ -38,16 +44,15 @@ def table_everything(data_df: Dict[str, pd.DataFrame],
 
     Returns: None
     """
-    for suite_name, suite in suites.items():
-        print(f'=== {suite_name} ===')
-        table_suite(data_df, suite, metrics)
+    for suite, phase in suites:
+        print(f'=== {suite} {phase} ===')
+        table_suite(data_df, suite, phase, metrics)
 
 
 def load_stats_csv(stats_csv: str,
                    prefetchers: List[str],
                    prefetchers_level = 'l2',
-                   separate_degrees: bool = False,
-                   seed: Optional[int] = None) -> Dict[str, pd.DataFrame]:
+                   separate_degrees: bool = False) -> Dict[str, pd.DataFrame]:
     """Load stats for arbitrary prefetchers.
 
     Parameters:
@@ -63,8 +68,6 @@ def load_stats_csv(stats_csv: str,
         data_df: A dict of prefetchers and their statistics dataframes.
     """
     df = utils.read_data_file(stats_csv)
-    if seed is not None:
-        df = df[df.seed == seed]
     df.fillna(0, inplace=True)
 
     data_df = {}
@@ -117,8 +120,7 @@ def merge_best_prefetcher(*dfs, metric='ipc', method='max'):
 
 
 def load_stats_csv_pythia(stats_csv: str,
-                          feature_sets: List[Set],
-                          seed: Optional[int] = None) -> Dict[str, pd.DataFrame]:
+                          feature_sets: List[Set]) -> Dict[str, pd.DataFrame]:
     """Load stats for specific Pythia feature sets.
 
     Parameters:
@@ -142,11 +144,8 @@ def load_stats_csv_pythia(stats_csv: str,
     def set_to_string(set):
         return ', '.join(f for f in sorted(set))
 
-    
     data_df = {}
     df = utils.read_data_file(stats_csv)
-    if seed is not None:
-        df = df[df.seed == seed]
     if feature_sets == []:
         feature_sets = df.pythia_features.unique()
         feature_sets = [value_to_set(s) for s in feature_sets]

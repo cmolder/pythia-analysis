@@ -1,3 +1,4 @@
+from itertools import product
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -8,10 +9,12 @@ from utils import utils, stats
 
 
 def plot_metric(data_df: dict, metric: str,
+                suite: str = 'spec06',
+                phase: str = 'one_phase',
+                # Matplotlib
                 figsize: Tuple[int, int] = None,
                 dpi: int = None,
                 legend: bool = True,
-                suite_name: str = '',
                 colors: dict = {},
                 legend_kwargs: dict={}):
     """Plot a specific metric for different prefetchers within a suite.
@@ -19,9 +22,10 @@ def plot_metric(data_df: dict, metric: str,
     Parameters:
         data_df: A dict of prefetchers and their statistics dataframes.
         metric: The metric to plot.
+        suite: The name of the suite.
         dpi: The matplotlib DPI.
         figsize: The matplotlib figsize.
-        suite_name: The name of the suite, added to the plot title.
+        
 
     Returns: None
     """
@@ -32,17 +36,12 @@ def plot_metric(data_df: dict, metric: str,
     num_samples = len(data_df.items())
     gap = num_samples + 1
 
-    traces = list(list(data_df.values())[0].trace.unique())
-    trace_names = traces + \
-        (['amean'] if metric in utils.amean_metrics else ['gmean'])
-    traces = traces + ['mean']
+    traces = list(list(data_df.values())[0].cpu0_trace.unique())
 
     min_y, max_y = 0, 0
     for i, (setup, df) in enumerate(data_df.items()):
-        df = df[df.pythia_level_threshold == float('-inf')]
-        df = stats.add_means(df)  # Add mean as an extra trace
         for j, tr in enumerate(traces):
-            rows = df[df.trace == tr]
+            rows = df[df.cpu0_trace == tr]
             pos = (gap * j) + i
             #print(f'[DEBUG] i={i} j={j} setup={setup} tr={tr} pos={pos}, {pos+1}')
             p_samples = (rows[rows.all_pref.apply(match_prefetcher)])
@@ -63,8 +62,9 @@ def plot_metric(data_df: dict, metric: str,
             #             yerr=[[p_mean - p_min], [p_max - p_mean]],
             #             color='black')
 
+    ax.set_xlim(-gap/2, len(traces) * gap + gap/2)
     ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples/2))
-    ax.set_xticklabels(trace_names, rotation=90)
+    ax.set_xticklabels(traces, rotation=90)
     ax.set_xlabel('Trace')
 
     # Set ticks based on metric
@@ -87,13 +87,13 @@ def plot_metric(data_df: dict, metric: str,
     ax.set_axisbelow(True)
 
     if legend:
-        fig.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
-    fig.suptitle(f'{metric.replace("_", " ")} ({suite_name})')
+        ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+    fig.suptitle(f'{metric.replace("_", " ")} ({suite} {phase})')
     fig.tight_layout()
 
 
 def plot_everything(data_df: Dict[str, pd.DataFrame],
-                    suites: Dict[str, List[str]] = {'SPEC 06': utils.spec06},
+                    suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
                     metrics: List[str] = ['ipc_improvement'],
                     **kwargs):
     """Plot multiples metrics for different prefetchers across suites.
@@ -107,12 +107,18 @@ def plot_everything(data_df: Dict[str, pd.DataFrame],
 
     Returns: None
     """
-    for suite_name, suite in suites.items():
-        data_df_ = {k: v[v.trace.isin(suite)] for k, v in data_df.items()}
-        print(f'=== {suite_name} ===')
+    for suite, phase in suites:
+        data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])]
+                    for k, v in data_df.items()}
+        for k, v in data_df_.items():
+            v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
+            v = stats.add_means(v)  # Add mean as an extra trace
+            v = v.set_index('run_name')
+            data_df_[k] = v
+
+        print(f'=== {suite} {phase} ===')
         for metric in metrics:
-            plot_metric(data_df_, metric,
-                        suite_name=suite_name, **kwargs)
+            plot_metric(data_df_, metric, suite, phase, **kwargs)
             plt.show()
 
 
@@ -130,8 +136,10 @@ def plot_metric_benchmark(data_df: dict, benchmark: str, metric: str,
 
     Returns: None
     """
-    def match_prefetcher(x): return x != (
-        'no', 'no', 'no')  # Used in p_samples
+
+    # Used in p_samples
+    def match_prefetcher(x): 
+        return x != ('no', 'no', 'no')
 
     fig, ax = plt.subplots(dpi=dpi, figsize=figsize)
     num_samples = len(data_df.items())
@@ -139,8 +147,8 @@ def plot_metric_benchmark(data_df: dict, benchmark: str, metric: str,
 
     max_y = 0
     for i, (setup, df) in enumerate(data_df.items()):
-        df = df[df.pythia_level_threshold == float('-inf')]
-        df = df[df.trace == benchmark]
+        #df = df[df.pythia_level_threshold == float('-inf')]
+        df = df[df.cpu0_trace == benchmark]
 
         pos = gap + i
         p_samples = (df[df.all_pref.apply(match_prefetcher)][metric])
@@ -183,7 +191,7 @@ def plot_everything_benchmark(data_df: Dict[str, pd.DataFrame],
     Returns: None
     """
     for benchmark in benchmarks:
-        data_df_ = {k: v[v.trace == benchmark] for k, v in data_df.items()}
+        data_df_ = {k: v[v.cpu0_trace == benchmark] for k, v in data_df.items()}
         print(benchmark)
         for metric in metrics:
             plot_metric_benchmark(data_df_, benchmark, metric,

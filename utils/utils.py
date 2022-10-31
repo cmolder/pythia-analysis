@@ -1,79 +1,55 @@
 from typing import Optional
-import warnings
 
 import pandas as pd
 import numpy as np
 from scipy import stats
 
-metrics = [
-    'L2C_issued_prefetches', 'L2C_accuracy', 'L2C_coverage', 'L2C_mpki_reduction',
-    'LLC_issued_prefetches', 'LLC_accuracy', 'LLC_coverage', 'LLC_mpki_reduction',
-    #'dram_bw_reduction', 
-    'ipc_improvement',
-    'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
-]
-amean_metrics = [
-    'L2C_issued_prefetches', 'L2C_accuracy', 'L2C_coverage',
-    'LLC_issued_prefetches', 'LLC_accuracy', 'LLC_coverage',
-    #'dram_bw_reduction',
-    'pythia_high_conf_prefetches', 'pythia_low_conf_prefetches'
-]
+# Selecting suites
+suites = {
+    'irregular': ['astar', 'bfs', 'cc', 'mcf', 'omnetpp', 'pr', 'soplex', 
+                  'sphinx3', 'xalancbmk'],
+    'spec06': ['astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix', 'gcc', 
+               'GemsFDTD', 'gobmk', 'gromacs', 'h264ref', 'hmmer', 'lbm', 
+               'leslie3d', 'libquantum', 'mcf', 'milc', 'omnetpp', 'perlbench',
+               'soplex', 'sphinx3', 'tonto', 'wrf', 'xalancbmk', 'zeusmp'],
+    'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
+}
 
-gap = [
-    'bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'
-]
-spec06 = [
-    'astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix',
-    'gcc', 'GemsFDTD', 'lbm', 'leslie3d',
-    'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex',
-    'sphinx3', 'tonto', 'wrf', 'xalancbmk', 'zeusmp'
-]
-spec17 = [
-    '603.bwaves', '605.mcf', '619.lbm', '620.omnetpp',
-    '621.wrf', '627.cam4', '649.fotonik3d', '654.roms'
-]
-
-
-def read_weights_file(path):
-    """DEPRECATED"""
-    warnings.warn(
-        'read_weights_file is deprecated, use -w in eval script instead.')
-    weights = pd.read_csv(path, sep=' ', header=None)
-    weights.columns = ['full_trace', 'weight']
-
-    trace = []
-    simpoint = []
-
-    for tr in weights.full_trace:
-        tokens = tr.split('_')
-
-        if len(tokens) == 3:  # Cloudsuite
-            trace.append(tokens[0] + '_' + tokens[2])
-            simpoint.append(tokens[1])
-        if len(tokens) == 2:  # SPEC '06
-            trace.append(tokens[0])
-            simpoint.append(tokens[1])
-        if len(tokens) == 1:  # Gap
-            trace.append(tokens[0].replace('.trace', ''))
-            simpoint.append('default')
-
-    weights['trace'] = trace
-    weights['simpoint'] = simpoint
-
-    return weights
-
-
-def read_degree_sweep_file(path):
-    """DEPRECATED"""
-    warnings.warn(
-        'read_degree_sweep_file is deprecated, use read_data_file instead.')
-    df = pd.read_csv(path)
-    df.columns = df.columns.str.replace('scooby_double', 'pythia_double')
-    df.columns = df.columns.str.replace('scooby', 'pythia')
-    df.columns = df.columns.str.replace('spp_dev2', 'spp')
-    df.columns = df.columns.str.replace('bop', 'bo')
-    df.columns = df.columns.str.replace('bop_orig', 'bo_orig')
-    return df
+# Selecting phases
+phases = {}
+phases['one_phase'] = {
+    'astar': '313B',
+    'bc': 'default',
+    'bfs': 'default',
+    'bwaves': '1861B',
+    'bzip2': '183B',
+    'cactusADM': '734B',
+    'calculix': '2670B',
+    'cc': 'default',
+    'gcc': '13B',
+    'GemsFDTD': '109B',
+    'gobmk': '135B',
+    'gromacs': '1B',
+    'h264ref': '273B',
+    'hmmer': '7B',
+    'lbm': '94B',
+    'leslie3d': '1116B',
+    'libquantum': '1210B',
+    'mcf': '46B',
+    'milc': '360B',
+    'omnetpp': '340B',
+    'perlbench': '53B',
+    'pr': 'default',
+    'soplex': '66B',
+    'sphinx3': '2520B',
+    'sssp': 'default',
+    'tc': 'default',
+    'tonto': '2834B',
+    'wrf': '1212B',
+    'xalancbmk': '99B',
+    'zeusmp': '600B',
+}
+phases['weighted'] = {k: 'weighted' for k in phases['one_phase']}
 
 
 def read_data_file(path: str):
@@ -88,12 +64,14 @@ def read_data_file(path: str):
     df = pd.read_csv(path)
 
     # Fill nan values
-    df.simpoint.fillna('default', inplace=True)
-    df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
+    simpoint_cols = [f'cpu{cpu}_simpoint' for cpu in range(max(df.num_cpus))]
+    df[simpoint_cols] = df[simpoint_cols].fillna('default')
 
-    # Clean prefetcher names
+    df.filter(regex='simpoint').fillna('default', inplace=True)
+    #df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
+
+    # Clean prefetcher names, fix prefetcher ordering
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
-
         df[col] = df[col].replace({
             'scooby_double': 'pythia_double',
             'scooby': 'pythia',
@@ -113,12 +91,10 @@ def read_data_file(path: str):
         })
 
     # Make all_pref follow cleaned prefetcher names
-    df['all_pref'] = list(zip(df.L1D_pref, df.L2C_pref, df.LLC_pref))
+    df.all_pref = list(zip(df.L1D_pref, df.L2C_pref, df.LLC_pref))
     return df
 
-
-def mean(values: np.ndarray,
-         metric: str,
+def mean(values: np.ndarray, metric: str, 
          weights: Optional[np.ndarray] = None):
     """Compute the mean of a particular metric, with the right formula.
 
@@ -132,44 +108,14 @@ def mean(values: np.ndarray,
     """
     if type(weights) is np.ndarray:
         assert np.isclose(np.sum(weights), 1), 'Weights should sum to 1'
-    if metric in amean_metrics:
-        return np.average(values, weights=weights)
+    # ipc_improvement: gmean
+    if 'ipc_improvement' in metric:
+        # Add 100 to prevent negative values (so that 100 = no prefetcher baseline)
+        return stats.gmean(values + 100, weights=weights) - 100
+    # mpki_reduction: gmean
+    if 'mpki_reduction' in metric:
+        # Take gmean of relative misses instead of MPKI reduction to prevent negative values
+        return 100 - stats.gmean(100 - values, weights=weights)
+    # Others: amean
     else:
-        if 'ipc_improvement' in metric:
-            # Add 100 to prevent negative values (so that 100 = no prefetcher baseline)
-            return stats.gmean(values + 100, weights=weights) - 100
-        if 'mpki_reduction' in metric:
-            # Take gmean of relative misses instead of MPKI reduction to prevent negative values
-            return 100 - stats.gmean(100 - values, weights=weights)
-        print(f'Unknown metric {metric}')
-
-
-def rank_prefetchers(df: pd.DataFrame,
-                     metric: str,
-                     count: Optional[int] = None):
-    """Rank a list of prefetchers, in order of the maximum on a metric.
-
-    Paramters:
-        df: A dataframe of the stats.
-        metric: The metric to use to rank the prefetchers.
-        count: The length of the ranking, give the top <count>.
-
-    Returns:
-        rank: A list of the top <count> prefetchers by <metric>.
-    """
-    pf_avgs = []
-    # Filter out opportunity prefetchers from the ranking.
-
-    for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
-        df = df[~df[col].str.startswith(
-            'pc_comb') & ~df[col].str.contains('phase_comb')]
-
-    for i, (pf, df_pf) in enumerate(df.groupby(['L1D_pref', 'L2C_pref', 'LLC_pref'])):
-        avg = mean(df_pf[metric], metric)
-        pf_avgs.append((avg, pf))
-
-    best = sorted(pf_avgs)[::-1]
-    if count != None:
-        best = best[:count]
-
-    return [pf for _, pf in best]
+        return np.average(values, weights=weights)
