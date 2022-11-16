@@ -15,6 +15,7 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
     Parameters:
         data_df: A dictionary of prefetchers and their statistics dataframes.
         suite: A list of benchmarks in the suite to include.
+        phase: Which phase to consider in each benchmark.
         metrics: A list of metrics to include.
 
     Returns: None
@@ -32,6 +33,37 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
         display(v[metrics])
 
 
+def table_metric(data_df: Dict[str, pd.DataFrame],
+                 suite: str = 'spec06',
+                 phase: str = 'one_phase',
+                 metric: str = 'ipc_improvement'):
+    """Summarize statsitics on a single metric.
+
+    Parameters:
+        data_df: A dictionary of prefetchers and their statistics dataframes.
+        suite: A list of benchmarks in the suite to include.
+        phase: Which phase to consider in each benchmark.
+        metric: A metric to include.
+
+    Returns: None
+    """
+    data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])].copy() 
+                for k, v in data_df.items()}
+
+    for k, v in data_df_.items():
+        v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
+        v = stats.add_means(v)  # Add mean as an extra trace
+        v = v.set_index('run_name')[metric]
+        v.name = k
+        data_df_[k] = v
+        #display(v)
+    
+    metric_df = pd.concat(data_df_.values(), axis=1)
+    display(metric_df)
+
+
+
+
 def table_everything(data_df: Dict[str, pd.DataFrame],
                      suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
                      metrics: List[str] = ['ipc_improvement']):
@@ -44,9 +76,14 @@ def table_everything(data_df: Dict[str, pd.DataFrame],
 
     Returns: None
     """
+    # for suite, phase in suites:
+    #     print(f'=== {suite} {phase} ===')
+    #     table_suite(data_df, suite, phase, metrics)
     for suite, phase in suites:
         print(f'=== {suite} {phase} ===')
-        table_suite(data_df, suite, phase, metrics)
+        for metric in metrics:
+            print(metric)
+            table_metric(data_df, suite, phase, metric)
 
 
 def load_stats_csv(stats_csv: str,

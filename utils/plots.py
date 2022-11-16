@@ -16,7 +16,8 @@ def plot_metric(data_df: dict, metric: str,
                 dpi: int = None,
                 legend: bool = True,
                 colors: dict = {},
-                legend_kwargs: dict={}):
+                legend_kwargs: dict = {},
+                label_kwargs: dict = {}):
     """Plot a specific metric for different prefetchers within a suite.
 
     Parameters:
@@ -63,8 +64,8 @@ def plot_metric(data_df: dict, metric: str,
             #             color='black')
 
     ax.set_xlim(-gap/2, len(traces) * gap + gap/2)
-    ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples/2))
-    ax.set_xticklabels(traces, rotation=90)
+    ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples / 2 - 0.5))
+    ax.set_xticklabels(traces, **label_kwargs)
     ax.set_xlabel('Trace')
 
     # Set ticks based on metric

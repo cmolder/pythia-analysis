@@ -8,10 +8,12 @@ from scipy import stats
 suites = {
     'irregular': ['astar', 'bfs', 'cc', 'mcf', 'omnetpp', 'pr', 'soplex', 
                   'sphinx3', 'xalancbmk'],
-    'spec06': ['astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix', 'gcc', 
-               'GemsFDTD', 'gobmk', 'gromacs', 'h264ref', 'hmmer', 'lbm', 
-               'leslie3d', 'libquantum', 'mcf', 'milc', 'omnetpp', 'perlbench',
-               'soplex', 'sphinx3', 'tonto', 'wrf', 'xalancbmk', 'zeusmp'],
+    'spec06': ['astar', 'bwaves', 'cactusADM', 'GemsFDTD', 'lbm', 'leslie3d', 
+               'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex', 'sphinx3', 
+               'xalancbmk', 'zeusmp'],
+               # The below benchmarks have <= 3 LLC MPKI on the baseline.
+               #'bzip2', 'calculix', 'gcc', 'gobmk', 'gromacs', 'h264ref', 
+               #'hmmer', 'perlbench', 'tonto', 'wrf'],
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
 }
 
@@ -73,12 +75,10 @@ def read_data_file(path: str):
     # Clean prefetcher names, fix prefetcher ordering
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
         df[col] = df[col].replace({
-            'scooby_double': 'pythia_double',
-            'scooby': 'pythia',
-            'spp_dev2': 'spp',
-            'bop': 'bo',
-            'bop_orig': 'bo_orig',
             'from_file': 'fromfile',
+            'isb_ideal': 'isbideal',
+            'isb_real': 'isbreal',
+            'spp_dev2': 'sppdev2'
         }, regex=True)
 
         # Fix prefetcher ordering
@@ -87,7 +87,9 @@ def read_data_file(path: str):
         # Unfix some orderings
         df[col] = df[col].replace({
             'fromfile': 'from_file',
-            'ideal_isb': 'isb_ideal'
+            'isbideal': 'isb_ideal',
+            'isbreal': 'isb_real',
+            'sppdev2': 'spp_dev2'
         })
 
     # Make all_pref follow cleaned prefetcher names
