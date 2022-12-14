@@ -190,3 +190,17 @@ def load_stats_csv_pythia(stats_csv: str,
         data_df[set_to_string(feat_set)] = (
             df[df.pythia_features.apply(value_to_set) == feat_set])
     return data_df
+
+
+def load_stats_csv_next_line(stats_csv: str, offsets: Optional[List[Set]] = None) -> Dict[str, pd.DataFrame]:
+    """Load stats for specific fixed-offsets.
+
+    TODO: docstring
+    """
+    data_df = {}
+    df = utils.read_data_file(stats_csv)
+    if offsets is None:
+        offsets = df.next_line_offset.unique()
+    for offset in offsets:
+        data_df[offset] = df[df.next_line_offset == offset]
+    return data_df

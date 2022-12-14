@@ -15,19 +15,18 @@ suites = {
                #'bzip2', 'calculix', 'gcc', 'gobmk', 'gromacs', 'h264ref', 
                #'hmmer', 'perlbench', 'tonto', 'wrf'],
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
+    'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming']
 }
 
 # Selecting phases
 phases = {}
 phases['one_phase'] = {
+    # SPEC 06
     'astar': '313B',
-    'bc': 'default',
-    'bfs': 'default',
     'bwaves': '1861B',
     'bzip2': '183B',
     'cactusADM': '734B',
     'calculix': '2670B',
-    'cc': 'default',
     'gcc': '13B',
     'GemsFDTD': '109B',
     'gobmk': '135B',
@@ -41,15 +40,25 @@ phases['one_phase'] = {
     'milc': '360B',
     'omnetpp': '340B',
     'perlbench': '53B',
-    'pr': 'default',
     'soplex': '66B',
     'sphinx3': '2520B',
-    'sssp': 'default',
-    'tc': 'default',
     'tonto': '2834B',
     'wrf': '1212B',
     'xalancbmk': '99B',
     'zeusmp': '600B',
+    # GAP
+    'bc': 'default',
+    'bfs': 'default',
+    'cc': 'default',
+    'pr': 'default',
+    'sssp': 'default',
+    'tc': 'default',
+    # Cloudsuite
+    'cassandra': 'phase0',
+    'classifcation': 'phase0',
+    'cloud9': 'phase0',
+    'nutch': 'phase0',
+    'streaming': 'phase0'
 }
 phases['weighted'] = {k: 'weighted' for k in phases['one_phase']}
 
@@ -69,26 +78,25 @@ def read_data_file(path: str):
     simpoint_cols = [f'cpu{cpu}_simpoint' for cpu in range(max(df.num_cpus))]
     df[simpoint_cols] = df[simpoint_cols].fillna('default')
 
-    df.filter(regex='simpoint').fillna('default', inplace=True)
-    #df.pythia_level_threshold.fillna(float('-inf'), inplace=True)
-
     # Clean prefetcher names, fix prefetcher ordering
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
         df[col] = df[col].replace({
             'from_file': 'fromfile',
             'isb_ideal': 'isbideal',
             'isb_real': 'isbreal',
+            'next_line': 'nextline',
             'spp_dev2': 'sppdev2'
         }, regex=True)
 
         # Fix prefetcher ordering
         df[col] = df[col].apply(lambda c: '_'.join(sorted(c.split('_'))))
-        
+
         # Unfix some orderings
         df[col] = df[col].replace({
             'fromfile': 'from_file',
             'isbideal': 'isb_ideal',
             'isbreal': 'isb_real',
+            'nextline': 'next_line',
             'sppdev2': 'spp_dev2'
         })
 

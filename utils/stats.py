@@ -1,5 +1,7 @@
 from itertools import product
 
+import pandas as pd
+
 from utils import utils
 
 def add_means(df):
@@ -40,5 +42,5 @@ def add_means(df):
             *(f'{cache}_mpki_reduction' for cache in caches),
             *(f'{cache}_issued_prefetches' for cache in caches)]:
             row[metric] = utils.mean(df_[metric], metric)
-        df = df.append(row)
+        df = pd.concat([df, pd.DataFrame.from_records([row])]) #df.append(row)
     return df

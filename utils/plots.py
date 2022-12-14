@@ -15,6 +15,7 @@ def plot_metric(data_df: dict, metric: str,
                 figsize: Tuple[int, int] = None,
                 dpi: int = None,
                 legend: bool = True,
+                suptitle: Optional[str] = None,
                 colors: dict = {},
                 legend_kwargs: dict = {},
                 label_kwargs: dict = {}):
@@ -89,7 +90,10 @@ def plot_metric(data_df: dict, metric: str,
 
     if legend:
         ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
-    fig.suptitle(f'{metric.replace("_", " ")} ({suite} {phase})')
+    title = f'{metric.replace("_", " ")} ({suite} {phase})'
+    if suptitle:
+        title = f'{suptitle} {title}'
+    fig.suptitle(title)
     fig.tight_layout()
 
 
