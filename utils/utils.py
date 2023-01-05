@@ -81,7 +81,9 @@ def read_data_file(path: str):
     # Clean prefetcher names, fix prefetcher ordering
     for col in ['L1D_pref', 'L2C_pref', 'LLC_pref']:
         df[col] = df[col].replace({
+            'cygnus_state': 'cygnusstate',
             'from_file': 'fromfile',
+            'ip_stride': 'ipstride',
             'isb_ideal': 'isbideal',
             'isb_real': 'isbreal',
             'next_line': 'nextline',
@@ -93,7 +95,9 @@ def read_data_file(path: str):
 
         # Unfix some orderings
         df[col] = df[col].replace({
+            'cygnusstate': 'cygnus_state',
             'fromfile': 'from_file',
+            'ipstride': 'ip_stride',
             'isbideal': 'isb_ideal',
             'isbreal': 'isb_real',
             'nextline': 'next_line',

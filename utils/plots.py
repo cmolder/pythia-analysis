@@ -17,6 +17,7 @@ def plot_metric(data_df: dict, metric: str,
                 legend: bool = True,
                 suptitle: Optional[str] = None,
                 colors: dict = {},
+                annotations: dict = {},
                 legend_kwargs: dict = {},
                 label_kwargs: dict = {}):
     """Plot a specific metric for different prefetchers within a suite.
@@ -57,12 +58,21 @@ def plot_metric(data_df: dict, metric: str,
                 min_y = min(min_y, p_min)
 
             #print(f'[DEBUG] {tr} Regular {setup} {p_mean:.2f} {p_min:.2f} {p_max:.2f}')
+            # Plot bar
             ax.bar(pos, p_mean,
                    label=f'{setup}' if j == 0 else None,
                    color=colors[setup] if setup in colors.keys() else f'C{i}')
+
+            # Plot bar error handles
             # ax.errorbar(pos, p_mean,
             #             yerr=[[p_mean - p_min], [p_max - p_mean]],
             #             color='black')
+
+            # Plot bar annotations
+            # TODO: Use a better scheme for annotation keys
+            annotations_key = p_samples.cpu0_full_trace.iloc[0]
+            if setup in annotations and annotations_key in annotations[setup]:
+                ax.annotate(annotations[setup][annotations_key], xy=(pos, p_max), ha='center', va='bottom', size=8)
 
     ax.set_xlim(-gap/2, len(traces) * gap + gap/2)
     ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples / 2 - 0.5))
@@ -115,8 +125,13 @@ def plot_everything(data_df: Dict[str, pd.DataFrame],
     for suite, phase in suites:
         data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])]
                     for k, v in data_df.items()}
+        # Compute phase traces
+        phase_simpoints = []
+        for k, v in utils.phases[phase].items():
+            phase_simpoints.append(f'{k}_{v}' if v != 'default' else k)
+
         for k, v in data_df_.items():
-            v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
+            v = v[v.cpu0_full_trace.isin(ps for ps in phase_simpoints)]
             v = stats.add_means(v)  # Add mean as an extra trace
             v = v.set_index('run_name')
             data_df_[k] = v

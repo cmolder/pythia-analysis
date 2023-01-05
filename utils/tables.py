@@ -202,5 +202,5 @@ def load_stats_csv_next_line(stats_csv: str, offsets: Optional[List[Set]] = None
     if offsets is None:
         offsets = df.next_line_offset.unique()
     for offset in offsets:
-        data_df[offset] = df[df.next_line_offset == offset]
+        data_df[offset] = df[df.next_line_offset == str(offset)]
     return data_df
