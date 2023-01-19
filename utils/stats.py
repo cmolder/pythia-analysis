@@ -39,8 +39,7 @@ def add_means(df):
             *(f'cpu{cpu}_ipc_improvement' for cpu in range(max(df.num_cpus))),
             *(f'{cache}_accuracy' for cache in caches),
             *(f'{cache}_coverage' for cache in caches),
-            *(f'{cache}_mpki_reduction' for cache in caches),
-            *(f'{cache}_issued_prefetches' for cache in caches)]:
+            *(f'{cache}_mpki_reduction' for cache in caches)]:
             row[metric] = utils.mean(df_[metric], metric)
         df = pd.concat([df, pd.DataFrame.from_records([row])]) #df.append(row)
     return df

@@ -15,7 +15,9 @@ suites = {
                #'bzip2', 'calculix', 'gcc', 'gobmk', 'gromacs', 'h264ref', 
                #'hmmer', 'perlbench', 'tonto', 'wrf'],
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
-    'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming']
+    'google': ['delta', 'merced'],
+    'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming'],
+    'libquantum': ['libquantum']
 }
 
 # Selecting phases
@@ -58,7 +60,9 @@ phases['one_phase'] = {
     'classifcation': 'phase0',
     'cloud9': 'phase0',
     'nutch': 'phase0',
-    'streaming': 'phase0'
+    'streaming': 'phase0',
+    'delta': '507252',
+    'merced': '467642',
 }
 phases['weighted'] = {k: 'weighted' for k in phases['one_phase']}
 

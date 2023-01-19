@@ -96,7 +96,7 @@ def plot_metric(data_df: dict, metric: str,
 
     ax.set_ylabel(metric.replace('_', ' '))
     ax.grid(axis='y', color='lightgray')
-    ax.set_axisbelow(True)
+
 
     if legend:
         ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
