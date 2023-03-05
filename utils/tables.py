@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
@@ -86,7 +87,8 @@ def table_everything(data_df: Dict[str, pd.DataFrame],
             table_metric(data_df, suite, phase, metric)
 
 
-def load_stats_csv(stats_csv: str,
+def load_stats_csv(base_dir: str,
+                   stats_csv: str,
                    prefetchers: List[str],
                    prefetchers_level = 'l2',
                    separate_degrees: bool = False) -> Dict[str, pd.DataFrame]:
@@ -104,6 +106,7 @@ def load_stats_csv(stats_csv: str,
     Returns:
         data_df: A dict of prefetchers and their statistics dataframes.
     """
+    stats_csv = os.path.join(base_dir, stats_csv)
     df = utils.read_data_file(stats_csv)
     df.fillna(0, inplace=True)
 
@@ -156,8 +159,10 @@ def merge_best_prefetcher(*dfs, metric='ipc', method='max'):
                       .sort_values('full_trace', ascending=True))
 
 
-def load_stats_csv_pythia(stats_csv: str,
-                          feature_sets: List[Set]) -> Dict[str, pd.DataFrame]:
+def load_stats_csv_pythia(base_dir: str,
+                          stats_csv: str,
+                          feature_sets: List[Set],
+                          feature_key = 'pythia_features') -> Dict[str, pd.DataFrame]:
     """Load stats for specific Pythia feature sets.
 
     Parameters:
@@ -171,6 +176,8 @@ def load_stats_csv_pythia(stats_csv: str,
     Returns:
         data_df: A dict of prefetchers and their statistics dataframes.
     """
+    stats_csv = os.path.join(base_dir, stats_csv)
+
     # Convert string/tuple/pd entry to unordered set.
     def value_to_set(value):
         if pd.notna(value):
@@ -184,19 +191,23 @@ def load_stats_csv_pythia(stats_csv: str,
     data_df = {}
     df = utils.read_data_file(stats_csv)
     if feature_sets == []:
-        feature_sets = df.pythia_features.unique()
+        feature_sets = df[feature_key].unique()
         feature_sets = [value_to_set(s) for s in feature_sets]
     for feat_set in feature_sets:
         data_df[set_to_string(feat_set)] = (
-            df[df.pythia_features.apply(value_to_set) == feat_set])
+            df[df[feature_key].apply(value_to_set) == feat_set])
     return data_df
 
 
-def load_stats_csv_next_line(stats_csv: str, offsets: Optional[List[Set]] = None) -> Dict[str, pd.DataFrame]:
+def load_stats_csv_next_line(base_dir: str, 
+                             stats_csv: str,
+                             offsets: Optional[List[Set]] = None) -> Dict[str, pd.DataFrame]:
     """Load stats for specific fixed-offsets.
 
     TODO: docstring
     """
+    stats_csv = os.path.join(base_dir, stats_csv)
+
     data_df = {}
     df = utils.read_data_file(stats_csv)
     if offsets is None:

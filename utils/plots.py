@@ -29,7 +29,6 @@ def plot_metric(data_df: dict, metric: str,
         dpi: The matplotlib DPI.
         figsize: The matplotlib figsize.
         
-
     Returns: None
     """
     def match_prefetcher(x): return x != (
@@ -96,11 +95,155 @@ def plot_metric(data_df: dict, metric: str,
 
     ax.set_ylabel(metric.replace('_', ' '))
     ax.grid(axis='y', color='lightgray')
+    ax.set_axisbelow(True)
 
 
     if legend:
         ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
     title = f'{metric.replace("_", " ")} ({suite} {phase})'
+    if suptitle:
+        title = f'{suptitle} {title}'
+    fig.suptitle(title)
+    fig.tight_layout()
+
+def plot_accuracy(data_df: dict, level: str,
+                  suite: str = 'spec06',
+                  phase: str = 'one_phase',
+                  # Matplotlib
+                  figsize: Tuple[int, int] = None,
+                  dpi: int = None,
+                  legend: bool = True,
+                  suptitle: Optional[str] = None,
+                  colors: dict = {},
+                  legend_kwargs: dict = {},
+                  label_kwargs: dict = {}):
+    """Plot (un)timely accuracy for different prefetchers within a suite
+    in a certain cache.
+
+    Parameters:
+        data_df: A dict of prefetchers and their statistics dataframes.
+        level: The cache level to plot.
+        suite: The name of the suite.
+        dpi: The matplotlib DPI.
+        figsize: The matplotlib figsize.
+        
+    Returns: None
+    """
+    def match_prefetcher(x): return x != (
+        'no', 'no', 'no')  # Used in p_samples
+
+    fig, ax = plt.subplots(dpi=dpi, figsize=figsize)
+    num_samples = len(data_df.items())
+    gap = num_samples + 1
+
+    traces = list(list(data_df.values())[0].cpu0_trace.unique())
+
+    for i, (setup, df) in enumerate(data_df.items()):
+        for j, tr in enumerate(traces):
+            rows = df[df.cpu0_trace == tr]
+            pos = (gap * j) + i
+            p_samples = (rows[rows.all_pref.apply(match_prefetcher)])
+            if p_samples.empty:
+                a_mean, ta_mean = np.nan, np.nan
+            else:
+                a_mean = p_samples[f'{level}_accuracy'].mean()
+                ta_mean = p_samples[f'{level}_timely_accuracy'].mean()
+
+            # Plot accuracy
+            ax.bar(pos, a_mean, color='lightgray')
+
+            # Plot timely accuracy
+            ax.bar(pos, ta_mean,
+                   label=f'{setup}' if j == 0 else None,
+                   color=colors[setup] if setup in colors.keys() else f'C{i}')
+
+    ax.set_xlim(-gap/2, len(traces) * gap + gap/2)
+    ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples / 2 - 0.5))
+    ax.set_xticklabels(traces, **label_kwargs)
+    ax.set_xlabel('Trace')
+    
+    ax.set_ylabel('Accuracy (%)')
+    ax.set_ylim(ymax=100.0)
+    ax.set_yticks(np.arange(0, 101, 10))
+
+    ax.grid(axis='y', color='lightgray')
+    ax.set_axisbelow(True)
+
+    if legend:
+        ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+    title = f'{level} accuracy ({suite} {phase})'
+    if suptitle:
+        title = f'{suptitle} {title}'
+    fig.suptitle(title)
+    fig.tight_layout()
+
+
+def plot_coverage(data_df: dict, level: str,
+                  suite: str = 'spec06',
+                  phase: str = 'one_phase',
+                  # Matplotlib
+                  figsize: Tuple[int, int] = None,
+                  dpi: int = None,
+                  legend: bool = True,
+                  suptitle: Optional[str] = None,
+                  colors: dict = {},
+                  legend_kwargs: dict = {},
+                  label_kwargs: dict = {}):
+    """Plot (un)timely coverage for different prefetchers within a suite
+    in a certain cache.
+
+    Parameters:
+        data_df: A dict of prefetchers and their statistics dataframes.
+        level: The cache level to plot.
+        suite: The name of the suite.
+        dpi: The matplotlib DPI.
+        figsize: The matplotlib figsize.
+        
+    Returns: None
+    """
+    def match_prefetcher(x): return x != (
+        'no', 'no', 'no')  # Used in p_samples
+
+    fig, ax = plt.subplots(dpi=dpi, figsize=figsize)
+    num_samples = len(data_df.items())
+    gap = num_samples + 1
+
+    traces = list(list(data_df.values())[0].cpu0_trace.unique())
+
+    for i, (setup, df) in enumerate(data_df.items()):
+        for j, tr in enumerate(traces):
+            rows = df[df.cpu0_trace == tr]
+            pos = (gap * j) + i
+            p_samples = (rows[rows.all_pref.apply(match_prefetcher)])
+            if p_samples.empty:
+                c_mean, uc_mean = np.nan, np.nan
+            else:
+                c_mean = p_samples[f'{level}_coverage'].mean()
+                uc_mean = p_samples[f'{level}_untimely_coverage'].mean()
+
+            # Plot untimely coverage
+            ax.bar(pos, uc_mean, color='lightgray')
+
+            # Plot timely coverage
+            ax.bar(pos, c_mean,
+                   label=f'{setup}' if j == 0 else None,
+                   color=colors[setup] if setup in colors.keys() else f'C{i}')
+
+    ax.set_xlim(-gap/2, len(traces) * gap + gap/2)
+    ax.set_xticks(np.arange(0, len(traces)) * gap + (num_samples / 2 - 0.5))
+    ax.set_xticklabels(traces, **label_kwargs)
+    ax.set_xlabel('Trace')
+    
+    ax.set_ylabel('Coverage (%)')
+    ax.set_ylim(ymax=100.0)
+    ax.set_yticks(np.arange(0, 101, 10))
+
+    ax.grid(axis='y', color='lightgray')
+    ax.set_axisbelow(True)
+
+    if legend:
+        ax.legend(**legend_kwargs)  # bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+    title = f'{level} coverage ({suite} {phase})'
     if suptitle:
         title = f'{suptitle} {title}'
     fig.suptitle(title)
@@ -140,6 +283,56 @@ def plot_everything(data_df: Dict[str, pd.DataFrame],
         for metric in metrics:
             plot_metric(data_df_, metric, suite, phase, **kwargs)
             plt.show()
+
+
+def plot_everything_accuracy(data_df: Dict[str, pd.DataFrame],
+                             suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
+                             level='l2c',
+                             **kwargs):
+    """Plot timely/untimely accuracy for different prefetchers across suites.
+    """
+    for suite, phase in suites:
+        data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])]
+                    for k, v in data_df.items()}
+        # Compute phase traces
+        phase_simpoints = []
+        for k, v in utils.phases[phase].items():
+            phase_simpoints.append(f'{k}_{v}' if v != 'default' else k)
+
+        for k, v in data_df_.items():
+            v = v[v.cpu0_full_trace.isin(ps for ps in phase_simpoints)]
+            v = stats.add_means(v)  # Add mean as an extra trace
+            v = v.set_index('run_name')
+            data_df_[k] = v
+
+        print(f'=== {suite} {phase} ===')
+        plot_accuracy(data_df_, level, suite, phase, **kwargs)
+        plt.show()
+
+
+def plot_everything_coverage(data_df: Dict[str, pd.DataFrame],
+                             suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
+                             level='l2c',
+                             **kwargs):
+    """Plot timely/untimely coverage for different prefetchers across suites.
+    """
+    for suite, phase in suites:
+        data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])]
+                    for k, v in data_df.items()}
+        # Compute phase traces
+        phase_simpoints = []
+        for k, v in utils.phases[phase].items():
+            phase_simpoints.append(f'{k}_{v}' if v != 'default' else k)
+
+        for k, v in data_df_.items():
+            v = v[v.cpu0_full_trace.isin(ps for ps in phase_simpoints)]
+            v = stats.add_means(v)  # Add mean as an extra trace
+            v = v.set_index('run_name')
+            data_df_[k] = v
+
+        print(f'=== {suite} {phase} ===')
+        plot_coverage(data_df_, level, suite, phase, **kwargs)
+        plt.show()
 
 
 def plot_metric_benchmark(data_df: dict, benchmark: str, metric: str,

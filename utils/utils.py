@@ -8,12 +8,21 @@ from scipy import stats
 suites = {
     'irregular': ['astar', 'bfs', 'cc', 'mcf', 'omnetpp', 'pr', 'soplex', 
                   'sphinx3', 'xalancbmk'],
+
+    # All of SPEC
+    # 'spec06': ['astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix', 'gcc',
+    #            'GemsFDTD', 'gobmk', 'gromacs', 'h264ref', 'hmmer', 'lbm', 
+    #            'leslie3d', 'libquantum', 'mcf', 'milc', 'omnetpp', 'perlbench',
+    #            'soplex', 'sphinx3', 'tonto', 'wrf' 'xalancbmk', 'zeusmp'],
+
+    # All of SPEC, excluding benchmarks with <= 3 LLC MPKI on the baseline
     'spec06': ['astar', 'bwaves', 'cactusADM', 'GemsFDTD', 'lbm', 'leslie3d', 
                'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex', 'sphinx3', 
                'xalancbmk', 'zeusmp'],
                # The below benchmarks have <= 3 LLC MPKI on the baseline.
                #'bzip2', 'calculix', 'gcc', 'gobmk', 'gromacs', 'h264ref', 
                #'hmmer', 'perlbench', 'tonto', 'wrf'],
+
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
     'google': ['delta', 'merced'],
     'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming'],
@@ -91,7 +100,8 @@ def read_data_file(path: str):
             'isb_ideal': 'isbideal',
             'isb_real': 'isbreal',
             'next_line': 'nextline',
-            'spp_dev2': 'sppdev2'
+            'spp_dev2': 'sppdev2',
+            'spp_ppf_dev': 'sppppfdev',
         }, regex=True)
 
         # Fix prefetcher ordering
@@ -105,7 +115,8 @@ def read_data_file(path: str):
             'isbideal': 'isb_ideal',
             'isbreal': 'isb_real',
             'nextline': 'next_line',
-            'sppdev2': 'spp_dev2'
+            'sppdev2': 'spp_dev2',
+            'sppppfdev': 'spp_ppf_dev',
         })
 
     # Make all_pref follow cleaned prefetcher names

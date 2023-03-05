@@ -37,6 +37,12 @@ def add_means(df):
             'ipc_improvement',
             *(f'cpu{cpu}_ipc' for cpu in range(max(df.num_cpus))),
             *(f'cpu{cpu}_ipc_improvement' for cpu in range(max(df.num_cpus))),
+            *(f'{cache}_timely_accuracy' for cache in caches),
+            *(f'{cache}_untimely_coverage' for cache in caches),
+            *(f'{cache}_pf_issued' for cache in caches),
+            *(f'{cache}_pf_hits' for cache in caches),
+            *(f'{cache}_pf_useless_unused' for cache in caches),
+            *(f'{cache}_pf_useless_hit' for cache in caches),
             *(f'{cache}_accuracy' for cache in caches),
             *(f'{cache}_coverage' for cache in caches),
             *(f'{cache}_mpki_reduction' for cache in caches)]:
