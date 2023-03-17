@@ -63,6 +63,52 @@ def table_metric(data_df: Dict[str, pd.DataFrame],
     display(metric_df)
 
 
+def table_metric_all(data_df: Dict[str, pd.DataFrame],
+                     suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
+                     metric: str = 'ipc_improvement'):
+    """Summarize statistics on a single metric, across multiple
+    suites. The mean is weighted evenly per-benchmark.
+    """
+
+    # Gather benchmarks and phases for all traces in all provided suites-phases.
+    benchmarks = {}
+    for s, p in suites:
+        for b in utils.suites[s]:
+            benchmarks[b] = utils.phases[p][b]
+
+    # benchmarks, phases = list(benchmarks.keys()), list(benchmarks.values())
+
+    # print(benchmarks)
+    # print(phases)
+    data_df_ = {k: v[v.cpu0_trace.isin(benchmarks.keys())].copy() 
+                for k, v in data_df.items()}
+    
+    for k, v in data_df_.items():
+        v['expected_phase'] = v.cpu0_trace.map(benchmarks)
+        v = v[v.cpu0_simpoint == v.expected_phase]
+        v = v.drop(columns=['expected_phase'])
+        #v = v[v.cpu0_simpoint == benchmarks[v.cpu0_trace]]
+
+        # Add mean over *all* traces
+        v = stats.add_means(v) 
+
+        # Add mean over each suite's traces
+        for s, p in suites:
+            v_suite = v[v.cpu0_trace.isin(utils.suites[s])]
+            v_suite = stats.add_means(v_suite)  # Add suite's mean as an extra trace
+            v_suite = v_suite[v_suite.run_name == 'mean']
+            v_suite.run_name[:] = f'{s} mean'
+            v = pd.concat([v, v_suite])
+
+        # Only display means
+        v = v[v.run_name.str.contains('mean')]
+        v = v.set_index('run_name')[metric]
+        v.name = k
+        data_df_[k] = v
+
+    metric_df = pd.concat(data_df_.values(), axis=1).T
+    display(metric_df)
+
 
 
 def table_everything(data_df: Dict[str, pd.DataFrame],

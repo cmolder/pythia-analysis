@@ -26,7 +26,7 @@ suites = {
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
     'google': ['delta', 'merced'],
     'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming'],
-    'libquantum': ['libquantum']
+    'libquantum': ['libquantum'],
 }
 
 # Selecting phases
