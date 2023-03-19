@@ -148,3 +148,21 @@ def mean(values: np.ndarray, metric: str,
     # Others: amean
     else:
         return np.average(values, weights=weights)
+
+def get_mean_type(metric: str) -> str:
+    """Return the type of mean (amean/gmean) as a string."""
+    if 'ipc_improvement' in metric or 'mpki_reduction' in metric:
+        return 'gmean'
+    else:
+        return 'amean'
+
+def clean_trace_name(trace_name: str, metric: Optional[str] = "") -> str:
+    """Clean a trace name for plotting."""
+    tr = trace_name.split('_')
+    if len(tr) == 1:
+        tr = tr[0]
+        if tr == 'mean' and metric != '':
+            tr = get_mean_type(metric)
+    else:
+        tr = '_'.join(tr[:-1])
+    return tr

@@ -1,10 +1,40 @@
 import os
 from typing import Dict, List, Optional, Set, Tuple
 
+import numpy as np
+import scipy
 import pandas as pd
 from IPython.display import display
 
 from utils import stats, utils
+
+def gen_table_suite(data_df: Dict[str, pd.DataFrame],
+                    suite: str = 'spec06',
+                    phase: str = 'one_phase',
+                    metrics: List[str] = ['ipc_improvement']) -> Dict[str, pd.DataFrame]:
+    """Summarize statsitics on a single suite.
+
+    Parameters:
+        data_df: A dictionary of prefetchers and their statistics dataframes.
+        suite: A list of benchmarks in the suite to include.
+        phase: Which phase to consider in each benchmark.
+        metrics: A list of metrics to include.
+
+    Returns: None
+
+    TODO: Handle multicore
+    """
+    tables = {}
+    data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])] 
+                for k, v in data_df.items()}
+
+    for k, v in data_df_.items():
+        v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
+        v = stats.add_means(v)  # Add mean as an extra trace
+        v = v.set_index('run_name')
+        tables[k] = v[metrics]
+
+    return tables
 
 
 def table_suite(data_df: Dict[str, pd.DataFrame],
@@ -23,21 +53,16 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
 
     TODO: Handle multicore
     """
-    data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])] 
-                for k, v in data_df.items()}
-
-    for k, v in data_df_.items():
-        v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
-        v = stats.add_means(v)  # Add mean as an extra trace
-        v = v.set_index('run_name')
+    tables = gen_table_suite(data_df, suite, phase, metrics)
+    for k, v in tables.items():
         print(k)
-        display(v[metrics])
+        display(v)
 
 
-def table_metric(data_df: Dict[str, pd.DataFrame],
-                 suite: str = 'spec06',
-                 phase: str = 'one_phase',
-                 metric: str = 'ipc_improvement'):
+def gen_table_metric(data_df: Dict[str, pd.DataFrame],
+                     suite: str = 'spec06',
+                     phase: str = 'one_phase',
+                     metric: str = 'ipc_improvement') -> pd.DataFrame:
     """Summarize statsitics on a single metric.
 
     Parameters:
@@ -60,7 +85,63 @@ def table_metric(data_df: Dict[str, pd.DataFrame],
         #display(v)
     
     metric_df = pd.concat(data_df_.values(), axis=1)
-    display(metric_df)
+    return metric_df
+
+
+def table_metric(data_df: Dict[str, pd.DataFrame],
+                 suite: str = 'spec06',
+                 phase: str = 'one_phase',
+                 metric: str = 'ipc_improvement'):
+    """Summarize statsitics on a single metric.
+
+    Parameters:
+        data_df: A dictionary of prefetchers and their statistics dataframes.
+        suite: A list of benchmarks in the suite to include.
+        phase: Which phase to consider in each benchmark.
+        metric: A metric to include.
+
+    Returns: None
+    """
+    display(gen_table_metric(data_df, suite, phase, metric))
+
+
+def gen_table_metric_all(data_df: Dict[str, pd.DataFrame],
+                        suites: List[Tuple[str, str]] = [('spec06', 'one_phase')],
+                        metric: str = 'ipc_improvement') -> pd.DataFrame:
+    """Summarize statistics on a single metric, across multiple
+    suites. The mean is weighted evenly per-benchmark.
+    """
+    tables = {s: gen_table_metric(data_df, s, p, metric) for s, p in suites}
+
+    # Get the means for each suite
+    means = {}
+    weights = {'all': 0}
+    for suite, table in tables.items():
+        means[suite] = table[table.index == 'mean'].copy().reset_index()
+        means[suite].loc[:, 'suite'] = suite
+        means[suite].set_index('suite', inplace=True)
+        del means[suite]['run_name']
+        means[suite] = means[suite].squeeze()
+        weights[suite] = len(utils.suites[suite])
+        
+    means_df = pd.DataFrame(means.values()).T
+    
+    # Add an overall mean weighted by the number of benchmarks in each suite.
+    # Create the "all" column and move it to the front
+    means_df.loc[:, 'all'] = 0.0 # To be filled
+    all_col = means_df.pop('all')
+    means_df.insert(0, 'all', all_col)
+    
+    # Fill in the values of the "all" column
+    for index, row in means_df.iterrows():
+        row_weights = np.array([weights[i] for i, _ in row.iteritems()])
+        row_weights = row_weights / np.sum(row_weights) # Normalize
+        row_values = np.array([v for _, v in row.iteritems()])
+        row_mean = utils.mean(row_values, metric, row_weights)
+        means_df.loc[index, 'all'] = row_mean
+
+    means_df = means_df.round(6)
+    return means_df
 
 
 def table_metric_all(data_df: Dict[str, pd.DataFrame],
@@ -69,46 +150,7 @@ def table_metric_all(data_df: Dict[str, pd.DataFrame],
     """Summarize statistics on a single metric, across multiple
     suites. The mean is weighted evenly per-benchmark.
     """
-
-    # Gather benchmarks and phases for all traces in all provided suites-phases.
-    benchmarks = {}
-    for s, p in suites:
-        for b in utils.suites[s]:
-            benchmarks[b] = utils.phases[p][b]
-
-    # benchmarks, phases = list(benchmarks.keys()), list(benchmarks.values())
-
-    # print(benchmarks)
-    # print(phases)
-    data_df_ = {k: v[v.cpu0_trace.isin(benchmarks.keys())].copy() 
-                for k, v in data_df.items()}
-    
-    for k, v in data_df_.items():
-        v['expected_phase'] = v.cpu0_trace.map(benchmarks)
-        v = v[v.cpu0_simpoint == v.expected_phase]
-        v = v.drop(columns=['expected_phase'])
-        #v = v[v.cpu0_simpoint == benchmarks[v.cpu0_trace]]
-
-        # Add mean over *all* traces
-        v = stats.add_means(v) 
-
-        # Add mean over each suite's traces
-        for s, p in suites:
-            v_suite = v[v.cpu0_trace.isin(utils.suites[s])]
-            v_suite = stats.add_means(v_suite)  # Add suite's mean as an extra trace
-            v_suite = v_suite[v_suite.run_name == 'mean']
-            v_suite.run_name[:] = f'{s} mean'
-            v = pd.concat([v, v_suite])
-
-        # Only display means
-        v = v[v.run_name.str.contains('mean')]
-        v = v.set_index('run_name')[metric]
-        v.name = k
-        data_df_[k] = v
-
-    metric_df = pd.concat(data_df_.values(), axis=1).T
-    display(metric_df)
-
+    display(gen_table_metric_all(data_df, suites, metric))
 
 
 def table_everything(data_df: Dict[str, pd.DataFrame],
