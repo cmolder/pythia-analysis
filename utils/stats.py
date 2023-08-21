@@ -13,11 +13,16 @@ def add_means(df):
     if 'mean' in df.run_name.values:
         return df
 
+    # If DF is empty, return empty 
+    # TODO
+
+
     df = df.copy()
 
     simpoint_cols = [f'cpu{cpu}_simpoint' for cpu in range(max(df.num_cpus))]
     full_trace_cols = [f'cpu{cpu}_full_trace' for cpu in range(max(df.num_cpus))]
     trace_cols = [f'cpu{cpu}_trace' for cpu in range(max(df.num_cpus))]
+    
 
     caches = [
         'L1D', 'L2C', 'LLC',
@@ -45,7 +50,12 @@ def add_means(df):
             *(f'{cache}_pf_useless_hit' for cache in caches),
             *(f'{cache}_accuracy' for cache in caches),
             *(f'{cache}_coverage' for cache in caches),
-            *(f'{cache}_mpki_reduction' for cache in caches)]:
+            *(f'{cache}_untimely_coverage' for cache in caches),
+            *(f'{cache}_overpredictions' for cache in caches),
+            *(f'{cache}_mpki_reduction' for cache in caches),
+            #*(f'{cache}_miss_cycles' for cache in caches),
+            #*(f'{cache}_miss_cycles_avg' for cache in caches),
+        ]:
             row[metric] = utils.mean(df_[metric], metric)
         df = pd.concat([df, pd.DataFrame.from_records([row])]) #df.append(row)
     return df

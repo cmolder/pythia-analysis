@@ -58,11 +58,30 @@ def table_suite(data_df: Dict[str, pd.DataFrame],
         print(k)
         display(v)
 
+def process_run_names(run_names: pd.Series):
+    run_names = run_names.copy()
+    run_phases = run_names.copy()
+
+    for i, rn in run_names.iteritems():
+        rn = str(rn).split('_')
+        if rn[0] == 'mix':
+            run_names[i] = f'mix{rn[1]}'
+            run_phases[i] = 'default'
+        elif len(rn) == 1:
+            run_names[i] = rn[0]
+            run_phases[i] = 'default'
+        else:
+            run_names[i] = '_'.join(rn[:-1])
+            run_phases[i] = rn[-1]
+
+    return run_names, run_phases
+
 
 def gen_table_metric(data_df: Dict[str, pd.DataFrame],
                      suite: str = 'spec06',
                      phase: str = 'one_phase',
-                     metric: str = 'ipc_improvement') -> pd.DataFrame:
+                     metric: str = 'ipc_improvement',
+                     add_mean: bool = True) -> pd.DataFrame:
     """Summarize statsitics on a single metric.
 
     Parameters:
@@ -73,16 +92,27 @@ def gen_table_metric(data_df: Dict[str, pd.DataFrame],
 
     Returns: None
     """
-    data_df_ = {k: v[v.cpu0_trace.isin(utils.suites[suite])].copy() 
-                for k, v in data_df.items()}
-
+    data_df_ = {k: v.copy() for k, v in data_df.items()}
+    
     for k, v in data_df_.items():
-        v = v[v.cpu0_simpoint.isin(v for v in utils.phases[phase].values())]
-        v = stats.add_means(v)  # Add mean as an extra trace
+        run_names, run_phases = process_run_names(v.run_name)
+        v['run_name_adj'] = run_names
+        v['run_phase_adj'] = run_phases
+
+        # Filter on this suite's runs
+        v = v[v.run_name_adj.isin(utils.suites[suite])]
+
+        # Filter on this phase's runs
+        v = v[v.apply(lambda row : row.run_phase_adj == utils.phases[phase][row.run_name_adj], axis=1)]
+
+        # Add mean as an extra row
+        if add_mean:
+            v = stats.add_means(v)
+        
+        # Cleanup, re-assign the value
         v = v.set_index('run_name')[metric]
         v.name = k
         data_df_[k] = v
-        #display(v)
     
     metric_df = pd.concat(data_df_.values(), axis=1)
     return metric_df
@@ -131,12 +161,17 @@ def gen_table_metric_all(data_df: Dict[str, pd.DataFrame],
     means_df.loc[:, 'all'] = 0.0 # To be filled
     all_col = means_df.pop('all')
     means_df.insert(0, 'all', all_col)
-    
+
     # Fill in the values of the "all" column
     for index, row in means_df.iterrows():
         row_weights = np.array([weights[i] for i, _ in row.iteritems()])
         row_weights = row_weights / np.sum(row_weights) # Normalize
+
+        if index == "Bingo":
+            print(row_weights.tolist())
         row_values = np.array([v for _, v in row.iteritems()])
+        if index == "Bingo":
+            print(row_values.tolist())
         row_mean = utils.mean(row_values, metric, row_weights)
         means_df.loc[index, 'all'] = row_mean
 

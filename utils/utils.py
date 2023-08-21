@@ -9,25 +9,33 @@ suites = {
     'irregular': ['astar', 'bfs', 'cc', 'mcf', 'omnetpp', 'pr', 'soplex', 
                   'sphinx3', 'xalancbmk'],
 
-    # All of SPEC
-    # 'spec06': ['astar', 'bwaves', 'bzip2', 'cactusADM', 'calculix', 'gcc',
-    #            'GemsFDTD', 'gobmk', 'gromacs', 'h264ref', 'hmmer', 'lbm', 
-    #            'leslie3d', 'libquantum', 'mcf', 'milc', 'omnetpp', 'perlbench',
-    #            'soplex', 'sphinx3', 'tonto', 'wrf' 'xalancbmk', 'zeusmp'],
-
-    # All of SPEC, excluding benchmarks with <= 3 LLC MPKI on the baseline
-    'spec06': ['astar', 'bwaves', 'cactusADM', 'GemsFDTD', 'lbm', 'leslie3d', 
-               'libquantum', 'mcf', 'milc', 'omnetpp', 'soplex', 'sphinx3', 
-               'xalancbmk', 'zeusmp'],
-               # The below benchmarks have <= 3 LLC MPKI on the baseline.
-               #'bzip2', 'calculix', 'gcc', 'gobmk', 'gromacs', 'h264ref', 
+    'spec06': ['astar', 'bwaves', 'cactusADM', 'gcc', 'GemsFDTD', 'lbm', 
+               'leslie3d', 'libquantum', 'mcf', 'milc', 'omnetpp', 
+               'soplex', 'sphinx3', 'xalancbmk', 'zeusmp'],
+               # The below benchmarks have <= 2 LLC MPKI on the baseline.
+               #'bzip2', 'calculix', 'gobmk', 'gromacs', 'h264ref', 
                #'hmmer', 'perlbench', 'tonto', 'wrf'],
 
+    'spec17': ['602.gcc', '605.mcf', '607.cactuBSSN', '619.lbm', '620.omnetpp',
+               '627.cam4', '649.fotonik3d', '623.xalancbmk', '628.pop2'],
+               # The below benchmarks have <= 2 LLC MPKI on the baseline.
+               # '600.perlbench', '603.bwaves', '621.wrf', 
+               # '625.x264', '631.deepsjeng', '638.imagick', 
+               # '641.leela', '644.nab', '648.exchange2', '654.roms', 
+               # '657.xz'],
+
     'gap': ['bc', 'bfs', 'cc', 'pr', 'sssp', 'tc'],
-    'google': ['delta', 'merced'],
+    'google': ['charlie', 'delta', 'merced', 'whiskey'],
     'cloudsuite': ['cassandra', 'classifcation', 'cloud9', 'nutch', 'streaming'],
-    'libquantum': ['libquantum'],
+
+    # Experimental
+    'action_ordering': ['GemsFDTD', 'libquantum', 'leslie3d', 'sphinx3', 'bfs', 'cc'],
+                       # The below benchmarks were also evaluated.
+                       # 'gcc', 'GemsFDTD', 'lbm', 'leslie3d', 'libquantum',
+                       # 'soplex', 'sphinx3', 'bfs', 'cc', 'sssp', 'delta',
+                       # 'merced', 'cloud9']
 }
+suites['mixes'] = [f'mix{i}' for i in range(0, 100)]
 
 # Selecting phases
 phases = {}
@@ -57,6 +65,27 @@ phases['one_phase'] = {
     'wrf': '1212B',
     'xalancbmk': '99B',
     'zeusmp': '600B',
+    # SPEC 17
+    '600.perlbench': '210B',
+    '602.gcc': '734B',
+    '603.bwaves': '3699B',
+    '605.mcf': '665B',
+    '607.cactuBSSN': '2421B',
+    '619.lbm': '4268B',
+    '620.omnetpp': '874B',
+    '621.wrf': '575B',
+    '623.xalancbmk': '700B',
+    '625.x264': '18B',
+    '627.cam4': '573B',
+    '628.pop2': '17B',
+    '631.deepsjeng': '928B',
+    '638.imagick': '10316B',
+    '641.leela': '800B',
+    '644.nab': '5835B',
+    '648.exchange2': '1699B',
+    '649.fotonik3d': '1176B',
+    '654.roms': '842B',
+    '657.xz': '3167B',
     # GAP
     'bc': 'default',
     'bfs': 'default',
@@ -64,16 +93,21 @@ phases['one_phase'] = {
     'pr': 'default',
     'sssp': 'default',
     'tc': 'default',
+    # Google
+    'charlie': 'default',
+    'delta': 'default',
+    'merced': 'default',
+    'whiskey': 'default',
     # Cloudsuite
     'cassandra': 'phase0',
     'classifcation': 'phase0',
     'cloud9': 'phase0',
     'nutch': 'phase0',
     'streaming': 'phase0',
-    'delta': '507252',
-    'merced': '467642',
 }
-phases['weighted'] = {k: 'weighted' for k in phases['one_phase']}
+phases['weighted'] = {k: ('weighted' if phases['one_phase'][k] != 'default' else 'default') for k in phases['one_phase']}
+phases['weighted'] |= {f'mix{i}': 'default' for i in range(0, 100)}
+phases['one_phase'] |= {f'mix{i}': 'default' for i in range(0, 100)}
 
 
 def read_data_file(path: str):
