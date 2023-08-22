@@ -3,9 +3,7 @@ from typing import Dict
 
 import pandas as pd
 
-import utils.file
-import utils.table
-
+from naboo_utils import file, table
 class StudyCollator():
     """"Helper class that gathers and organizes studies.
     """
@@ -17,8 +15,8 @@ class StudyCollator():
         self.study_path = os.path.join(sim_dir, study_name)
         self.baseline_study_path = os.path.join(sim_dir, baseline_study)
 
-        self.study = utils.file.ChampsimStudy(self.study_path)
-        self.baseline_study = utils.file.ChampsimStudy(self.baseline_study_path)
+        self.study = file.ChampsimStudy(self.study_path)
+        self.baseline_study = file.ChampsimStudy(self.baseline_study_path)
         self.baseline_experiment = baseline_experiment
 
         # Process the study
@@ -27,7 +25,7 @@ class StudyCollator():
                             baseline_exp=self.baseline_experiment)
 
         # Create a tabler and precompute benchmark/suite statistics.
-        self.tabler = utils.table.ChampsimTabler(self.study, 
+        self.tabler = table.ChampsimTabler(self.study, 
                                                  weights_path=weights_path)
         self.tabler.generate_benchmark_statistics(num_threads=num_threads)
         self.tabler.generate_suite_statistics(num_threads=num_threads)
