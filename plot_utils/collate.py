@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, List, Optional
 
 import pandas as pd
 
@@ -11,11 +11,15 @@ class StudyCollator():
                  baseline_study: str      = "stu_test",
                  baseline_experiment: str = "_baseline",
                  num_threads: int         =  16,
-                 weights_path: str        = "weights.toml"):
+                 weights_path: str        = "weights.toml",
+                 experiments: Optional[List[str]] = None):
         self.study_path = os.path.join(sim_dir, study_name)
         self.baseline_study_path = os.path.join(sim_dir, baseline_study)
 
-        self.study = file.ChampsimStudy(self.study_path)
+        if experiments is not None and baseline_experiment not in experiments:
+            experiments.append(baseline_experiment)
+
+        self.study = file.ChampsimStudy(self.study_path, experiments=experiments)
         self.baseline_study = file.ChampsimStudy(self.baseline_study_path)
         self.baseline_experiment = baseline_experiment
 

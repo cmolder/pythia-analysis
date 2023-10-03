@@ -4,8 +4,10 @@ from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from plot_utils import collate
+from naboo_utils.file import avg_fn_wrapper
 
 
 """
@@ -34,26 +36,48 @@ def get_mean_string(statistic_name: str):
     else:
         return "amean"
     
+def get_mean(statistic_name: str, table: pd.DataFrame):
+    """Infer the mean for a statistic based on the
+    statistic name."""
+    mean_string = get_mean_string(statistic_name)
+    if mean_string == "gmean":
+        fn = stats.gmean
+    elif mean_string == "hmean":
+        fn = stats.hmean
+    else:
+        fn = np.average
+
+    return table.apply(lambda row : avg_fn_wrapper(fn, mean_string, row, statistic_name.split(".")), axis=1)
 
 def get_benchmark_table(experiments: Dict[str, collate.ExperimentCollator],
                         suite_name: str,
                         statistic_name: str,
+                        benchmarks: Optional[List[str]] = None,
                         add_mean: bool = True) -> pd.DataFrame:
     """Get the table for a benchmark, with some extra processing
     for plotting.
     """
     table = collate.get_benchmark_statistic(experiments, suite_name, statistic_name).T
+    if benchmarks is not None:
+        table = table[benchmarks]
     if add_mean:
-        mean = collate.get_suite_statistic(experiments, statistic_name).T
-        table[get_mean_string(statistic_name)] = mean[suite_name]
+        mean = get_mean(statistic_name, table)
+        table[get_mean_string(statistic_name)] = mean
     return table
 
 def get_suite_table(experiments: Dict[str, collate.ExperimentCollator],
-                    statistic_name: str) -> pd.DataFrame:
+                    statistic_name: str,
+                    suites: Optional[List[str]] = None,
+                    add_mean: bool = True) -> pd.DataFrame:
     """Get the table for a suite, with some extra processing
     for plotting.
     """
     table = collate.get_suite_statistic(experiments, statistic_name).T
+    if suites is not None:
+        table = table[suites]
+    if add_mean:
+        mean = get_mean(statistic_name, table)
+        table[get_mean_string(statistic_name)] = mean
     return table
 
 def plot_table(table: pd.DataFrame,
@@ -163,15 +187,18 @@ def plot_benchmark_statistic(experiments: Dict[str, collate.ExperimentCollator],
                              suite_name: str,
                              statistic_name: str,
                              secondary_statistic_name: Optional[str] = None,
+                             benchmarks: Optional[List[str]] = None,
                              add_mean: bool = True,
                              **kwargs):
     """TODO: Docstring
     """
     # Gather table(s)
-    table = get_benchmark_table(experiments, suite_name, statistic_name, 
-                                add_mean=add_mean)
+    table = get_benchmark_table(experiments, suite_name, statistic_name,
+                                benchmarks=benchmarks, add_mean=add_mean)
     if secondary_statistic_name is not None:
-        secondary_table = get_benchmark_table(experiments, suite_name, secondary_statistic_name, 
+        secondary_table = get_benchmark_table(experiments, suite_name,
+                                              secondary_statistic_name,
+                                              benchmarks=benchmarks,
                                               add_mean=add_mean)
     else:
         secondary_table = None
@@ -181,12 +208,16 @@ def plot_benchmark_statistic(experiments: Dict[str, collate.ExperimentCollator],
 def plot_suite_statistic(experiments: Dict[str, collate.ExperimentCollator],
                          statistic_name: str,
                          secondary_statistic_name: Optional[str] = None,
+                         suites: Optional[List[str]] = None,
+                         add_mean: bool = True,
                          **kwargs):
     """TODO: Docstring
     """
-    table = get_suite_table(experiments, statistic_name)
+    table = get_suite_table(experiments, statistic_name,
+                            suites=suites, add_mean=add_mean)
     if secondary_statistic_name is not None:
-        secondary_table = get_suite_table(experiments, secondary_statistic_name)
+        secondary_table = get_suite_table(experiments, secondary_statistic_name, 
+                                          suites=suites, add_mean=add_mean)
     else:
         secondary_table = None
 
