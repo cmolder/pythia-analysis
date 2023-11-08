@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Set, Optional
 
 import pandas as pd
 
@@ -12,7 +12,8 @@ class StudyCollator():
                  baseline_experiment: str = "_baseline",
                  num_threads: int         =  16,
                  weights_path: str        = "weights.toml",
-                 experiments: Optional[List[str]] = None):
+                 experiments: Optional[List[str]] = None,
+                 suites: Optional[Set[str]] = None):
         self.study_path = os.path.join(sim_dir, study_name)
         self.baseline_study_path = os.path.join(sim_dir, baseline_study)
 
@@ -32,7 +33,7 @@ class StudyCollator():
         self.tabler = table.ChampsimTabler(self.study, 
                                                  weights_path=weights_path)
         self.tabler.generate_benchmark_statistics(num_threads=num_threads)
-        self.tabler.generate_suite_statistics(num_threads=num_threads)
+        self.tabler.generate_suite_statistics(num_threads=num_threads, suites=suites)
 
     def __getitem__(self, item):
         assert isinstance(item, str), "StudyCollator must be indexed by experiment name"
