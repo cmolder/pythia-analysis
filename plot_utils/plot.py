@@ -50,34 +50,53 @@ def get_mean(statistic_name: str, table: pd.DataFrame):
     return table.apply(lambda row : avg_fn_wrapper(fn, mean_string, row, statistic_name.split(".")), axis=1)
 
 def get_benchmark_table(experiments: Dict[str, collate.ExperimentCollator],
-                        suite_name: str,
-                        statistic_name: str,
+                        suite: str,
+                        stat: str,
                         benchmarks: Optional[List[str]] = None,
-                        add_mean: bool = True) -> pd.DataFrame:
-    """Get the table for a benchmark, with some extra processing
+                        add_mean: bool = True,
+                        use_weights: bool = True) -> pd.DataFrame:
+    """Get the table for benchmarks, with some extra processing
     for plotting.
     """
-    table = collate.get_benchmark_statistic(experiments, suite_name, statistic_name).T
+    table = collate.get_benchmark_statistic(
+        experiments, suite, stat,
+        use_weights=use_weights).T
     if benchmarks is not None:
         table = table[benchmarks]
     if add_mean:
-        mean = get_mean(statistic_name, table)
-        table[get_mean_string(statistic_name)] = mean
+        # TODO: Use naboo tabler to get mean
+        mean = get_mean(stat, table)
+        table[get_mean_string(stat)] = mean
     return table
 
 def get_suite_table(experiments: Dict[str, collate.ExperimentCollator],
-                    statistic_name: str,
+                    stat: str,
                     suites: Optional[List[str]] = None,
-                    add_mean: bool = True) -> pd.DataFrame:
+                    add_mean: bool = True,
+                    use_weights: bool = True) -> pd.DataFrame:
     """Get the table for a suite, with some extra processing
     for plotting.
     """
-    table = collate.get_suite_statistic(experiments, statistic_name).T
-    if suites is not None:
-        table = table[suites]
+    table = collate.get_suite_statistic(
+        experiments, stat,
+        suites=suites,
+        use_weights=use_weights).T
     if add_mean:
-        mean = get_mean(statistic_name, table)
-        table[get_mean_string(statistic_name)] = mean
+        # TODO: Use naboo tabler to get mean
+        mean = get_mean(stat, table)
+        table[get_mean_string(stat)] = mean
+    return table
+
+def get_mix_table(experiments: Dict[str, collate.ExperimentCollator],
+                  suite: str,
+                  stat: str,
+                  mixes: Optional[List[str]] = None) -> pd.DataFrame:
+    """Get the table for mixes, with some extra processing 
+    for plotting."""
+    table = collate.get_mix_statistic(
+        experiments, suite, stat).T
+    if mixes is not None:
+        table = table[mixes]
     return table
 
 def plot_table(table: pd.DataFrame,
