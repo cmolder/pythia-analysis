@@ -8,7 +8,7 @@ class StudyCollator():
     """"Helper class that gathers and organizes studies.
     """
     def __init__(self, sim_dir: str, study_name: str,
-                 mix_file: str, benchmark_file: str, suite_file: str,
+                 mix_file: str, benchmark_file: str, suite_file: str, mix_set: str,
                  baseline_study: str      = "stu_test",
                  baseline_experiment: str = "_baseline",
                  num_threads: int         =  16,
@@ -20,8 +20,8 @@ class StudyCollator():
         if experiments is not None and baseline_experiment not in experiments:
             experiments.append(baseline_experiment)
 
-        self.study = file.ChampsimStudy(self.study_path, experiments=experiments)
-        self.baseline_study = file.ChampsimStudy(self.baseline_study_path)
+        self.study = file.ChampsimStudy.FromStudyDir(self.study_path, experiments=experiments)
+        self.baseline_study = file.ChampsimStudy.FromStudyDir(self.baseline_study_path)
         self.baseline_experiment = baseline_experiment
 
         # Process the study
@@ -31,7 +31,7 @@ class StudyCollator():
                             baseline_exp=self.baseline_experiment)
 
         # Create a tabler and precompute benchmark/suite statistics.
-        self.tabler = table.ChampsimTabler(self.study, benchmark_file, suite_file, mix_file)
+        self.tabler = table.ChampsimTabler(self.study, suite_file, benchmark_file, mix_file, mix_set)
         print()
 
     def __getitem__(self, item):
